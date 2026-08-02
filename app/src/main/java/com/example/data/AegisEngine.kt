@@ -41,7 +41,7 @@ data class ApiGenerateResponse(val candidates: List<ApiCandidate> = emptyList())
 
 // --- Retrofit Service ---
 interface GeminiRestService {
-    @POST("v1beta/models/gemini-3.5-flash:generateContent")
+    @POST("v1beta/models/gemini-2.5-flash:generateContent")
     suspend fun generateContent(
         @Query("key") apiKey: String,
         @Body request: ApiGenerateRequest

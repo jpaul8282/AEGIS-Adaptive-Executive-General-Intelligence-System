@@ -172,7 +172,7 @@ class AegisViewModel(application: Application) : AndroidViewModel(application) {
             val sources = AegisSourceSearchEngine.searchParallelSources(secResult.sanitizedQuery, detectedDomain)
             val sourceNamesStr = sources.joinToString(", ") { it.sourceName }
 
-            // 5. Generate Response via Gemini REST or Intelligent Engine
+            // 5. Generate Response via Gemini REST with full conversation context
             val apiKey = BuildConfig.GEMINI_API_KEY
             val systemInstructions = """
                 You are AEGIS (Adaptive Executive & General Intelligence System).
@@ -188,13 +188,28 @@ class AegisViewModel(application: Application) : AndroidViewModel(application) {
 
             if (apiKey.isNotBlank() && apiKey != "MY_GEMINI_API_KEY") {
                 try {
-                    val request = ApiGenerateRequest(
-                        contents = listOf(
+                    val currentHistory = messages.value.takeLast(10)
+                    val contentsList = mutableListOf<ApiContent>()
+                    currentHistory.forEach { msg ->
+                        val role = if (msg.sender == "USER") "user" else "model"
+                        contentsList.add(
+                            ApiContent(
+                                parts = listOf(ApiPart(text = msg.content)),
+                                role = role
+                            )
+                        )
+                    }
+                    if (contentsList.isEmpty() || contentsList.last().role != "user") {
+                        contentsList.add(
                             ApiContent(
                                 parts = listOf(ApiPart(text = secResult.sanitizedQuery)),
                                 role = "user"
                             )
-                        ),
+                        )
+                    }
+
+                    val request = ApiGenerateRequest(
+                        contents = contentsList,
                         systemInstruction = ApiContent(
                             parts = listOf(ApiPart(text = systemInstructions))
                         )
