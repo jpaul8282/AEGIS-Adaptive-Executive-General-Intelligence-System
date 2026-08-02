@@ -1,0 +1,6 @@
+{
+  "name": "AEGIS",
+  "description": "AEGIS — Adaptive Executive & General Intelligence System with Security, Multi-Domain AI & Executive Tools",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
