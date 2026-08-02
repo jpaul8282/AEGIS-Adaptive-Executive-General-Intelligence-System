@@ -5,6 +5,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import com.example.BuildConfig
+import com.example.auth.AegisAuthManager
+import com.example.auth.AuthState
 import com.example.data.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -18,6 +20,31 @@ class AegisViewModel(application: Application) : AndroidViewModel(application) {
     ).fallbackToDestructiveMigration().build()
 
     private val dao = db.aegisDao()
+
+    val authManager = AegisAuthManager(application)
+    val authState: StateFlow<AuthState> = authManager.authState
+
+    fun signInWithGoogle() {
+        viewModelScope.launch {
+            authManager.signInWithGoogle()
+        }
+    }
+
+    fun signInWithEmail(email: String, pass: String) {
+        viewModelScope.launch {
+            authManager.signInWithEmail(email, pass)
+        }
+    }
+
+    fun signInAnonymously() {
+        viewModelScope.launch {
+            authManager.signInAnonymously()
+        }
+    }
+
+    fun signOut() {
+        authManager.signOut()
+    }
 
     // State Flows from Room
     val auditLogs: StateFlow<List<AuditLogEntity>> = dao.getAllAuditLogs()

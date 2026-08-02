@@ -45,9 +45,11 @@ fun AegisMainScreen(
     val isProcessing by viewModel.isProcessing.collectAsStateWithLifecycle()
     val lastSecurityStatus by viewModel.lastSecurityStatus.collectAsStateWithLifecycle()
     val queryText by viewModel.currentQueryText.collectAsStateWithLifecycle()
+    val authState by viewModel.authState.collectAsStateWithLifecycle()
 
     var showAuditDialog by remember { mutableStateOf(false) }
     var showTasksDialog by remember { mutableStateOf(false) }
+    var showAuthDialog by remember { mutableStateOf(false) }
 
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
@@ -68,8 +70,14 @@ fun AegisMainScreen(
                 AegisHeader(
                     selectedDomain = selectedDomain,
                     lastSecurityStatus = lastSecurityStatus,
-                    onOpenAuditLogs = { showAuditDialog = true },
-                    onOpenTasks = { showTasksDialog = true }
+                    authState = authState,
+                    onOpenAuthDialog = { showAuthDialog = true },
+                    onOpenAuditLogs = {
+                        showAuditDialog = true
+                    },
+                    onOpenTasks = {
+                        showTasksDialog = true
+                    }
                 )
                 DomainSelectorBar(
                     selectedDomain = selectedDomain,
@@ -101,6 +109,17 @@ fun AegisMainScreen(
                     ChatMessageItem(message = message)
                 }
             }
+        }
+
+        if (showAuthDialog) {
+            AegisAuthDialog(
+                authState = authState,
+                onDismiss = { showAuthDialog = false },
+                onSignInWithGoogle = { viewModel.signInWithGoogle() },
+                onSignInWithEmail = { email, pass -> viewModel.signInWithEmail(email, pass) },
+                onSignInAnonymously = { viewModel.signInAnonymously() },
+                onSignOut = { viewModel.signOut() }
+            )
         }
 
         if (showAuditDialog) {

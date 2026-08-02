@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.auth.AuthState
 import com.example.data.*
 import com.example.ui.theme.*
 import com.example.viewmodel.AegisViewModel
@@ -36,6 +37,8 @@ import com.example.viewmodel.AegisViewModel
 fun AegisHeader(
     selectedDomain: AegisDomain,
     lastSecurityStatus: String?,
+    authState: AuthState,
+    onOpenAuthDialog: () -> Unit,
     onOpenAuditLogs: () -> Unit,
     onOpenTasks: () -> Unit
 ) {
@@ -91,7 +94,21 @@ fun AegisHeader(
                     }
                 }
 
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    IconButton(
+                        onClick = onOpenAuthDialog,
+                        modifier = Modifier.testTag("open_auth_dialog_button")
+                    ) {
+                        Icon(
+                            imageVector = if (authState is AuthState.SignedIn) Icons.Default.AccountCircle else Icons.Default.Lock,
+                            contentDescription = "Security Auth Clearance",
+                            tint = if (authState is AuthState.SignedIn) AegisGoldPrimary else AegisTextSecondary
+                        )
+                    }
+
                     IconButton(
                         onClick = onOpenTasks,
                         modifier = Modifier.testTag("open_tasks_button")
