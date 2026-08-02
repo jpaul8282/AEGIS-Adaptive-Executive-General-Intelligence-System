@@ -1,5 +1,14 @@
 package com.example.ui.components
 
+import android.Manifest
+import android.app.Activity
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.speech.RecognizerIntent
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -23,15 +32,18 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import com.example.auth.AuthState
 import com.example.data.*
 import com.example.ui.theme.*
 import com.example.viewmodel.AegisViewModel
+import java.util.Locale
 
 @Composable
 fun AegisHeader(
@@ -39,6 +51,7 @@ fun AegisHeader(
     lastSecurityStatus: String?,
     authState: AuthState,
     onOpenAuthDialog: () -> Unit,
+    onOpenSessions: () -> Unit,
     onOpenAuditLogs: () -> Unit,
     onOpenTasks: () -> Unit
 ) {
@@ -98,6 +111,17 @@ fun AegisHeader(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
+                    IconButton(
+                        onClick = onOpenSessions,
+                        modifier = Modifier.testTag("open_sessions_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.History,
+                            contentDescription = "Chat Sessions History",
+                            tint = AegisCyanAccent
+                        )
+                    }
+
                     IconButton(
                         onClick = onOpenAuthDialog,
                         modifier = Modifier.testTag("open_auth_dialog_button")
@@ -311,11 +335,18 @@ fun ChatMessageItem(message: ConversationMessageEntity) {
                 .padding(12.dp)
         ) {
             Column {
-                Text(
-                    text = message.content,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (isUser) MaterialTheme.colorScheme.onPrimaryContainer else AegisTextPrimary
-                )
+                if (isUser) {
+                    Text(
+                        text = message.content,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                } else {
+                    AegisMarkdownText(
+                        markdown = message.content,
+                        textColor = AegisTextPrimary
+                    )
+                }
 
                 if (!isUser && message.sourcesUsedJson != "[]" && message.sourcesUsedJson.isNotBlank()) {
                     Spacer(modifier = Modifier.height(8.dp))
@@ -348,6 +379,32 @@ fun QueryInputField(
     onSubmit: (String) -> Unit,
     isProcessing: Boolean
 ) {
+    val context = LocalContext.current
+    var isListening by remember { mutableStateOf(false) }
+
+    val speechLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        isListening = false
+        if (result.resultCode == Activity.RESULT_OK) {
+            val spokenText = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()
+            if (!spokenText.isNullOrBlank()) {
+                val newQuery = if (queryText.isBlank()) spokenText else "$queryText $spokenText"
+                onQueryChanged(newQuery)
+            }
+        }
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            launchVoiceInput(context, speechLauncher) { isListening = true }
+        } else {
+            Toast.makeText(context, "Microphone permission is required for voice input.", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     Surface(
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 8.dp,
@@ -359,12 +416,43 @@ fun QueryInputField(
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Voice Input / Microphone Button
+            IconButton(
+                onClick = {
+                    val hasPermission = ContextCompat.checkSelfPermission(
+                        context,
+                        Manifest.permission.RECORD_AUDIO
+                    ) == PackageManager.PERMISSION_GRANTED
+
+                    if (hasPermission) {
+                        launchVoiceInput(context, speechLauncher) { isListening = true }
+                    } else {
+                        permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                    }
+                },
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(if (isListening) AegisAlertRed else AegisSurfaceDark)
+                    .border(1.dp, if (isListening) AegisAlertRed else AegisBorderDark, CircleShape)
+                    .testTag("voice_input_button")
+            ) {
+                Icon(
+                    imageVector = if (isListening) Icons.Default.MicOff else Icons.Default.Mic,
+                    contentDescription = "Voice Prompt Input",
+                    tint = if (isListening) Color.White else AegisCyanAccent,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
             OutlinedTextField(
                 value = queryText,
                 onValueChange = onQueryChanged,
                 placeholder = {
                     Text(
-                        "Ask AEGIS anything (Security, Sales, Health, Math, Art...)",
+                        if (isListening) "Listening to voice directive..." else "Ask AEGIS anything (Security, Sales, Health, Math...)",
                         style = MaterialTheme.typography.bodySmall
                     )
                 },
@@ -420,5 +508,23 @@ fun QueryInputField(
                 }
             }
         }
+    }
+}
+
+private fun launchVoiceInput(
+    context: android.content.Context,
+    launcher: androidx.activity.result.ActivityResultLauncher<Intent>,
+    onStarted: () -> Unit
+) {
+    val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+        putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+        putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
+        putExtra(RecognizerIntent.EXTRA_PROMPT, "Speak your directive to AEGIS...")
+    }
+    try {
+        onStarted()
+        launcher.launch(intent)
+    } catch (e: ActivityNotFoundException) {
+        Toast.makeText(context, "Voice recognition service is not available on this device.", Toast.LENGTH_SHORT).show()
     }
 }

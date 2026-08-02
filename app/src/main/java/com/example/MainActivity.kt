@@ -46,10 +46,13 @@ fun AegisMainScreen(
     val lastSecurityStatus by viewModel.lastSecurityStatus.collectAsStateWithLifecycle()
     val queryText by viewModel.currentQueryText.collectAsStateWithLifecycle()
     val authState by viewModel.authState.collectAsStateWithLifecycle()
+    val currentSessionId by viewModel.currentSessionId.collectAsStateWithLifecycle()
+    val sessions by viewModel.sessions.collectAsStateWithLifecycle()
 
     var showAuditDialog by remember { mutableStateOf(false) }
     var showTasksDialog by remember { mutableStateOf(false) }
     var showAuthDialog by remember { mutableStateOf(false) }
+    var showSessionsDialog by remember { mutableStateOf(false) }
 
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
@@ -72,6 +75,7 @@ fun AegisMainScreen(
                     lastSecurityStatus = lastSecurityStatus,
                     authState = authState,
                     onOpenAuthDialog = { showAuthDialog = true },
+                    onOpenSessions = { showSessionsDialog = true },
                     onOpenAuditLogs = {
                         showAuditDialog = true
                     },
@@ -109,6 +113,17 @@ fun AegisMainScreen(
                     ChatMessageItem(message = message)
                 }
             }
+        }
+
+        if (showSessionsDialog) {
+            ChatSessionsDialog(
+                currentSessionId = currentSessionId,
+                sessions = sessions,
+                onDismiss = { showSessionsDialog = false },
+                onSelectSession = { viewModel.selectSession(it) },
+                onCreateNewSession = { viewModel.createNewSession(it) },
+                onDeleteSession = { viewModel.deleteSession(it) }
+            )
         }
 
         if (showAuthDialog) {

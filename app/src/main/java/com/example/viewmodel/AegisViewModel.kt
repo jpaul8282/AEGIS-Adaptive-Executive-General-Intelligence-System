@@ -8,8 +8,10 @@ import com.example.BuildConfig
 import com.example.auth.AegisAuthManager
 import com.example.auth.AuthState
 import com.example.data.*
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 class AegisViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -46,11 +48,20 @@ class AegisViewModel(application: Application) : AndroidViewModel(application) {
         authManager.signOut()
     }
 
-    // State Flows from Room
-    val auditLogs: StateFlow<List<AuditLogEntity>> = dao.getAllAuditLogs()
+    // Active Session Management
+    private val _currentSessionId = MutableStateFlow("default_session")
+    val currentSessionId: StateFlow<String> = _currentSessionId.asStateFlow()
+
+    val sessions: StateFlow<List<ChatSessionEntity>> = dao.getAllSessions()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val messages: StateFlow<List<ConversationMessageEntity>> = dao.getAllMessages()
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val messages: StateFlow<List<ConversationMessageEntity>> = _currentSessionId
+        .flatMapLatest { sessionId -> dao.getMessagesForSession(sessionId) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // State Flows from Room
+    val auditLogs: StateFlow<List<AuditLogEntity>> = dao.getAllAuditLogs()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val tasks: StateFlow<List<ExecutiveTaskEntity>> = dao.getAllTasks()
@@ -70,12 +81,24 @@ class AegisViewModel(application: Application) : AndroidViewModel(application) {
     val currentQueryText: StateFlow<String> = _currentQueryText.asStateFlow()
 
     init {
-        // Pre-populate initial welcome message & demo tasks if empty
+        // Pre-populate default chat session & welcome message if empty
         viewModelScope.launch {
-            dao.getAllMessages().firstOrNull().let { list ->
+            dao.getAllSessions().firstOrNull().let { sessionList ->
+                if (sessionList.isNullOrEmpty()) {
+                    val defaultSession = ChatSessionEntity(
+                        sessionId = "default_session",
+                        title = "Primary Executive Briefing",
+                        domain = AegisDomain.SECURITY.name
+                    )
+                    dao.insertSession(defaultSession)
+                }
+            }
+
+            dao.getMessagesForSession("default_session").firstOrNull().let { list ->
                 if (list.isNullOrEmpty()) {
                     dao.insertMessage(
                         ConversationMessageEntity(
+                            sessionId = "default_session",
                             sender = "AEGIS",
                             domain = AegisDomain.SECURITY.name,
                             content = "AEGIS System Initialized. Security shield ACTIVE. Ready to assist across Security, Data Analytics, Symbolic Math, Visual Art, Transparent Sales, Health Analytics, and Executive Task Management.",
@@ -85,6 +108,7 @@ class AegisViewModel(application: Application) : AndroidViewModel(application) {
                     )
                 }
             }
+
             dao.getAllTasks().firstOrNull().let { list ->
                 if (list.isNullOrEmpty()) {
                     dao.insertTask(
@@ -116,6 +140,49 @@ class AegisViewModel(application: Application) : AndroidViewModel(application) {
         _currentQueryText.value = text
     }
 
+    fun createNewSession(title: String = "") {
+        viewModelScope.launch {
+            val newSessionId = "session_${UUID.randomUUID().toString().take(8)}"
+            val sessionTitle = title.ifBlank { "Session #${(sessions.value.size + 1)}" }
+            val newSession = ChatSessionEntity(
+                sessionId = newSessionId,
+                title = sessionTitle,
+                domain = _selectedDomain.value.name
+            )
+            dao.insertSession(newSession)
+            dao.insertMessage(
+                ConversationMessageEntity(
+                    sessionId = newSessionId,
+                    sender = "AEGIS",
+                    domain = _selectedDomain.value.name,
+                    content = "New AEGIS Session initialized: '$sessionTitle'. Multi-domain context active.",
+                    securityLevel = "SHIELD_ACTIVE",
+                    confidence = 1.0f
+                )
+            )
+            _currentSessionId.value = newSessionId
+        }
+    }
+
+    fun selectSession(sessionId: String) {
+        _currentSessionId.value = sessionId
+    }
+
+    fun deleteSession(sessionId: String) {
+        viewModelScope.launch {
+            dao.deleteSession(sessionId)
+            dao.deleteMessagesForSession(sessionId)
+            if (_currentSessionId.value == sessionId) {
+                val remaining = sessions.value.filter { it.sessionId != sessionId }
+                if (remaining.isNotEmpty()) {
+                    _currentSessionId.value = remaining.first().sessionId
+                } else {
+                    createNewSession("Primary Executive Briefing")
+                }
+            }
+        }
+    }
+
     fun submitQuery(userPrompt: String) {
         if (userPrompt.isBlank()) return
 
@@ -123,6 +190,7 @@ class AegisViewModel(application: Application) : AndroidViewModel(application) {
             _isProcessing.value = true
             val rawQuery = userPrompt.trim()
             _currentQueryText.value = ""
+            val activeSessionId = _currentSessionId.value
 
             // 1. Auto-detect Domain
             val detectedDomain = AegisSourceSearchEngine.detectDomain(rawQuery)
@@ -131,11 +199,13 @@ class AegisViewModel(application: Application) : AndroidViewModel(application) {
             // 2. Insert User Message
             dao.insertMessage(
                 ConversationMessageEntity(
+                    sessionId = activeSessionId,
                     sender = "USER",
                     domain = detectedDomain.name,
                     content = rawQuery
                 )
             )
+            dao.updateSessionLastUpdated(activeSessionId, System.currentTimeMillis())
 
             // 3. Security Check
             val secResult = AegisSecurityEngine.screenQuery(rawQuery)
@@ -157,6 +227,7 @@ class AegisViewModel(application: Application) : AndroidViewModel(application) {
                 )
                 dao.insertMessage(
                     ConversationMessageEntity(
+                        sessionId = activeSessionId,
                         sender = "AEGIS",
                         domain = detectedDomain.name,
                         content = secResult.statusMessage,
@@ -244,6 +315,7 @@ class AegisViewModel(application: Application) : AndroidViewModel(application) {
             // 7. Insert Response Message
             dao.insertMessage(
                 ConversationMessageEntity(
+                    sessionId = activeSessionId,
                     sender = "AEGIS",
                     domain = detectedDomain.name,
                     content = responseText,
@@ -252,6 +324,7 @@ class AegisViewModel(application: Application) : AndroidViewModel(application) {
                     confidence = avgConfidence
                 )
             )
+            dao.updateSessionLastUpdated(activeSessionId, System.currentTimeMillis())
 
             _isProcessing.value = false
         }
