@@ -19,7 +19,7 @@ class AegisViewModel(application: Application) : AndroidViewModel(application) {
         application,
         AegisDatabase::class.java,
         "aegis_system_db"
-    ).fallbackToDestructiveMigration().build()
+    ).fallbackToDestructiveMigration(dropAllTables = true).build()
 
     private val dao = db.aegisDao()
 

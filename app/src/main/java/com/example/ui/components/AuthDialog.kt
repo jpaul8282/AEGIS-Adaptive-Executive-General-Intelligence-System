@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Login
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -147,7 +149,7 @@ fun AegisAuthDialog(
                                         .fillMaxWidth()
                                         .testTag("sign_out_button")
                                 ) {
-                                    Icon(imageVector = Icons.Default.Logout, contentDescription = "Sign Out")
+                                    Icon(imageVector = Icons.AutoMirrored.Filled.Logout, contentDescription = "Sign Out")
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text("Revoke Security Session")
                                 }
@@ -246,7 +248,7 @@ fun AegisAuthDialog(
                                 .testTag("email_sign_in_button"),
                             shape = RoundedCornerShape(12.dp)
                         ) {
-                            Icon(imageVector = Icons.Default.Login, contentDescription = null)
+                            Icon(imageVector = Icons.AutoMirrored.Filled.Login, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Email / Password Sign In")
                         }

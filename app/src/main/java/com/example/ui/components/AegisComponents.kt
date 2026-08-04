@@ -23,6 +23,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -258,7 +259,7 @@ fun getDomainIcon(domain: AegisDomain): ImageVector {
         AegisDomain.DATA_ANALYSIS -> Icons.Default.Analytics
         AegisDomain.MATH_SCIENCE -> Icons.Default.Calculate
         AegisDomain.ART_CREATIVE -> Icons.Default.Palette
-        AegisDomain.SALES_ENTERPRISE -> Icons.Default.TrendingUp
+        AegisDomain.SALES_ENTERPRISE -> Icons.AutoMirrored.Filled.TrendingUp
         AegisDomain.HEALTH_WELLNESS -> Icons.Default.MedicalServices
         AegisDomain.EXECUTIVE -> Icons.Default.Schedule
     }
