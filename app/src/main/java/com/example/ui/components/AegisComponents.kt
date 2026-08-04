@@ -179,13 +179,8 @@ fun AegisHeader(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(8.dp)
-                            .clip(CircleShape)
-                            .background(AegisSecurityGreen)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    PulsingStatusDot(color = AegisSecurityGreen, sizeDp = 8)
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = "Security Shield: ACTIVE",
                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
@@ -411,12 +406,20 @@ fun QueryInputField(
         tonalElevation = 8.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            if (isListening) {
+                AudioWaveformVisualizer(
+                    isListening = true,
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp)
+                )
+            }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
             // Voice Input / Microphone Button
             IconButton(
                 onClick = {
@@ -510,6 +513,7 @@ fun QueryInputField(
             }
         }
     }
+}
 }
 
 private fun launchVoiceInput(
