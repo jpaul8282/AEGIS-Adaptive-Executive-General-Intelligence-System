@@ -207,6 +207,28 @@ class AegisViewModel(application: Application) : AndroidViewModel(application) {
             )
             dao.updateSessionLastUpdated(activeSessionId, System.currentTimeMillis())
 
+            // Auto-detect and add item to Executive Tasks if user is asking to add an item/task
+            val lowerQuery = rawQuery.lowercase()
+            if (lowerQuery.startsWith("add item") || lowerQuery.startsWith("add task") || lowerQuery.startsWith("add directive") || lowerQuery.startsWith("need to add") || lowerQuery.contains("add item:")) {
+                val extractedTitle = rawQuery
+                    .substringAfter(":", rawQuery)
+                    .replace("add item", "", ignoreCase = true)
+                    .replace("add task", "", ignoreCase = true)
+                    .replace("add directive", "", ignoreCase = true)
+                    .replace("need to add", "", ignoreCase = true)
+                    .trim()
+                if (extractedTitle.isNotBlank()) {
+                    dao.insertTask(
+                        ExecutiveTaskEntity(
+                            title = extractedTitle.replaceFirstChar { it.uppercase() },
+                            category = detectedDomain.name,
+                            priority = "HIGH",
+                            dueDate = "Today"
+                        )
+                    )
+                }
+            }
+
             // 3. Security Check
             val secResult = AegisSecurityEngine.screenQuery(rawQuery)
             _lastSecurityStatus.value = secResult.statusMessage

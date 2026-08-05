@@ -306,46 +306,46 @@ fun QuickPromptSuggestions(
     val suggestions = remember(selectedDomain) {
         when (selectedDomain) {
             AegisDomain.SECURITY -> listOf(
+                "➕ Add item: Rotate API Keys & Certificates",
                 "🛡️ Perform System Security Audit",
                 "🔒 Verify End-to-End Encryption",
-                "⚡ Analyze Vulnerability Surface",
-                "🔑 Audit Executive Auth Clearance"
+                "⚡ Analyze Vulnerability Surface"
             )
             AegisDomain.DATA_ANALYSIS -> listOf(
+                "➕ Add item: Build BigQuery Revenue Pipeline",
                 "📊 Analyze Revenue & Growth Metrics",
                 "📈 Forecast Q3 Market Performance",
-                "🔍 Detect System Log Anomalies",
-                "⚡ Generate Data Visualization Schema"
+                "🔍 Detect System Log Anomalies"
             )
             AegisDomain.MATH_SCIENCE -> listOf(
+                "➕ Add item: Verify Proof for Wave Model",
                 "🧮 Solve Differential Wave Equation",
                 "⚛️ Derive Quantum State Transition",
-                "📐 Perform Matrix Eigen-Decomposition",
-                "📊 Calculate Statistical Confidence Interval"
+                "📐 Perform Matrix Eigen-Decomposition"
             )
             AegisDomain.ART_CREATIVE -> listOf(
+                "➕ Add item: Finalize Cyberpunk Theme Palette",
                 "🎨 Generate Cyberpunk Executive Concept",
                 "🖌️ Compose Modern Minimal Palette",
-                "✨ Craft Design System Spec",
-                "🖼️ Create 3D Holographic UI Render Prompt"
+                "✨ Craft Design System Spec"
             )
             AegisDomain.SALES_ENTERPRISE -> listOf(
+                "➕ Add item: Close Enterprise Q3 SLA Contract",
                 "💰 Enterprise Pipeline Forecast",
                 "🤝 Executive Client Proposal Audit",
-                "🎯 Lead Scoring Matrix & Strategy",
-                "📊 Quarterly SLA Compliance Brief"
+                "🎯 Lead Scoring Matrix & Strategy"
             )
             AegisDomain.HEALTH_WELLNESS -> listOf(
+                "➕ Add item: Daily Biometric Vital Log",
                 "🌿 Optimize Executive Circadian Rhythm",
                 "💤 Sleep Waveform & Recovery Score",
-                "🏃 Daily Biometric Vital Targets",
-                "🧘 High-Performance Stress Reduction"
+                "🏃 Daily Biometric Vital Targets"
             )
             AegisDomain.EXECUTIVE -> listOf(
+                "➕ Add item: Prepare Quarterly Board Briefing",
                 "📅 Prioritize Top 3 Quarterly OKRs",
                 "⏱️ Executive Schedule Optimization",
-                "📋 Summarize Active Task Backlog",
-                "🚀 Launch Strategic Roadmap Briefing"
+                "📋 Summarize Active Task Backlog"
             )
         }
     }
