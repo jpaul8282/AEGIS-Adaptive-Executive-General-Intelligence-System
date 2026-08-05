@@ -151,22 +151,226 @@ fun ExecutiveTasksDialog(
     onToggleTask: (ExecutiveTaskEntity) -> Unit,
     onDeleteTask: (Long) -> Unit
 ) {
+    var showAddForm by remember { mutableStateOf(false) }
+    var taskTitle by remember { mutableStateOf("") }
+    var taskCategory by remember { mutableStateOf("SECURITY") }
+    var taskPriority by remember { mutableStateOf("HIGH") }
+    var taskDueDate by remember { mutableStateOf("Today") }
+
+    val categories = listOf("SECURITY", "DATA", "SALES", "HEALTH", "MATH", "EXECUTIVE")
+    val priorities = listOf("URGENT", "HIGH", "MEDIUM", "LOW")
+    val dueDates = listOf("Today", "Tomorrow", "This Week", "Next Week")
+
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(16.dp),
             color = AegisSurfaceDark,
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.92f)
-                .padding(4.dp)
+                .fillMaxHeight(0.88f)
+                .padding(12.dp)
         ) {
-            TaskDashboardContent(
-                tasks = tasks,
-                onAddTask = onAddTask,
-                onToggleTask = onToggleTask,
-                onDeleteTask = onDeleteTask,
-                onDismiss = onDismiss
-            )
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "Executive Items & Directives",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = AegisGoldPrimary
+                        )
+                        Text(
+                            text = "${tasks.count { !it.isCompleted }} Active Items Pending",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = AegisCyanAccent
+                        )
+                    }
+                    IconButton(onClick = onDismiss) {
+                        Text("X", color = AegisTextSecondary, fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                if (!showAddForm) {
+                    Button(
+                        onClick = { showAddForm = true },
+                        colors = ButtonDefaults.buttonColors(containerColor = AegisGoldPrimary, contentColor = Color.Black),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("add_task_button"),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Icon(imageVector = Icons.Default.Add, contentDescription = "Add Item")
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Add Executive Item Needed", fontWeight = FontWeight.Bold)
+                    }
+                } else {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = AegisSurfaceVariantDark),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Text(
+                                text = "New Executive Directive Item",
+                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                color = AegisGoldPrimary
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            OutlinedTextField(
+                                value = taskTitle,
+                                onValueChange = { taskTitle = it },
+                                label = { Text("Item Title / Description") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Text("Category:", style = MaterialTheme.typography.labelSmall, color = AegisTextSecondary)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                categories.take(4).forEach { cat ->
+                                    FilterChip(
+                                        selected = taskCategory == cat,
+                                        onClick = { taskCategory = cat },
+                                        label = { Text(cat, style = MaterialTheme.typography.labelSmall) }
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text("Priority:", style = MaterialTheme.typography.labelSmall, color = AegisTextSecondary)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                priorities.forEach { prio ->
+                                    FilterChip(
+                                        selected = taskPriority == prio,
+                                        onClick = { taskPriority = prio },
+                                        label = { Text(prio, style = MaterialTheme.typography.labelSmall) }
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                TextButton(onClick = { showAddForm = false }) {
+                                    Text("Cancel", color = AegisTextSecondary)
+                                }
+                                Button(
+                                    onClick = {
+                                        if (taskTitle.isNotBlank()) {
+                                            onAddTask(taskTitle, taskCategory, taskPriority, taskDueDate)
+                                            taskTitle = ""
+                                            showAddForm = false
+                                        }
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = AegisCyanAccent, contentColor = Color.Black)
+                                ) {
+                                    Text("Save Item")
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                if (tasks.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "No active executive items. Tap above to add items you need.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = AegisTextSecondary
+                        )
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(tasks) { task ->
+                            Card(
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (task.isCompleted) AegisBorderDark else AegisSurfaceVariantDark
+                                ),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        IconButton(
+                                            onClick = { onToggleTask(task) },
+                                            modifier = Modifier.size(36.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = if (task.isCompleted) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
+                                                contentDescription = "Toggle completion",
+                                                tint = if (task.isCompleted) AegisSecurityGreen else AegisGoldPrimary,
+                                                modifier = Modifier.size(22.dp)
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Column {
+                                            Text(
+                                                text = task.title,
+                                                style = MaterialTheme.typography.bodyMedium.copy(
+                                                    fontWeight = FontWeight.SemiBold
+                                                ),
+                                                color = if (task.isCompleted) AegisTextMuted else AegisTextPrimary
+                                            )
+                                            Text(
+                                                text = "${task.category} • ${task.priority} • Due: ${task.dueDate}",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = AegisCyanAccent
+                                            )
+                                        }
+                                    }
+
+                                    IconButton(
+                                        onClick = { onDeleteTask(task.id) },
+                                        modifier = Modifier.size(36.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Delete,
+                                            contentDescription = "Delete Item",
+                                            tint = AegisAlertRed,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
